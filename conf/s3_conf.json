@@ -1,0 +1,4 @@
+{
+  "src_buckets": [ "aaaaaa", "bbbbbb", "ccccccc"],
+  "dest_bucket": "xxxxxx"
+}
