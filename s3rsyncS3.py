@@ -185,9 +185,15 @@ class S3RSync:
           if self.update: 
             self.s3copys3(src_bucket=src_bucket, dest_bucket=dest_bucket, key=r['Key'], size=r['Size'])
             #Delete previous object, if store has versioning on.
+        dest_keys[r['Key']] = None  #So we know we have this one in the source.
       else:
         if self.debug >= 1: print('Copying: ', src_bucket, "/", r['Key'], ' ', r['ETag'], ' ', r['Size']) 
         if self.update: self.s3copys3(src_bucket=src_bucket, dest_bucket=dest_bucket, key=r['Key'], size=r['Size'])
+
+    for r in dest_keys:
+      if dest_keys[r] is not None:
+        if self.debug >= 4: print('DELETED: ', r)
+        #Might want to age out the deleted ones.
 
 def parse_args():
   parser = argparse.ArgumentParser(description='rsync from source s3 bucket to dest s3 bucket')
