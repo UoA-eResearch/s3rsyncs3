@@ -134,7 +134,7 @@ class S3RSync:
     :param prefix: Only fetch objects whose key starts with this prefix (optional).
     :param suffix: Only fetch objects whose keys end with this suffix (optional).
     '''
-    paginator = s3.get_paginator("list_objects_v2")
+    paginator = s3.get_paginator("list_objects") # should be ("list_objects_v2"), but only getting first page with this
 
     kwargs = {'Bucket': bucket}
 
@@ -184,7 +184,7 @@ class S3RSync:
           if self.debug >= 1: print('Mismatched: ', src_bucket, "/", r['Key'], ' ', r['ETag'], ' ', r['Size'], dest_keys[r['Key']])
           if self.update: 
             self.s3copys3(src_bucket=src_bucket, dest_bucket=dest_bucket, key=r['Key'], size=r['Size'])
-            #Delete previous object, if store has versioning on, or leave it, in case the original was accidentally altered?
+            #Delete previous object, if store has versioning on.
       else:
         if self.debug >= 1: print('Copying: ', src_bucket, "/", r['Key'], ' ', r['ETag'], ' ', r['Size']) 
         if self.update: self.s3copys3(src_bucket=src_bucket, dest_bucket=dest_bucket, key=r['Key'], size=r['Size'])
