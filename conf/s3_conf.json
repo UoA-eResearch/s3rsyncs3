@@ -1,4 +1,5 @@
 {
   "src_buckets": [ "aaaaaa", "bbbbbb", "ccccccc"],
-  "dest_bucket": "xxxxxx"
+  "dest_bucket": "xxxxxx",
+  "chunk_size": 1073741824
 }

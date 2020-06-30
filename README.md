@@ -1,8 +1,12 @@
 # s3rsyncs3
 Rsync from one S3 service to another S3.  
 
-Requires an auth.json file, with the server urls, and keys
-Requires a conf.json, with the source buckets, and destination bucket
+* Requires an auth.json file, with the server urls, and keys
+* Requires a conf.json, with the source buckets, and destination bucket
+
+An object is transferred if there is no correcsponding object at the destination; Or if the ETag fields differ. Currently, objects deleted from the source store, are not deleted from the destination store.
+
+The ETag can be an AWS style multipart MD5, but it will only match if the source and destination objects where both uploaded with the same chunk size. This code assumes 1GiB (1073741824), to match the value used for uploading instrument data. Objects of size less than, or equal to the chunk size are uploaded without using chunks, so have a standard MD5 in the ETag.
 
 ## Help
 ```
@@ -25,7 +29,7 @@ optional arguments:
 ## Configuration
 
 ### conf/s3_auth.json
-```
+```json
 {
   "src_endpoint": "https://a.b",
   "src_s3_keys": {
@@ -42,10 +46,11 @@ optional arguments:
 ```
 
 ### conf/s3_conf.json
-```
+```json
 {
   "src_buckets": [ "aaaaaa", "bbbbbb", "ccccccc"],
-  "dest_bucket": "xxxxxx"
+  "dest_bucket": "xxxxxx",
+  "chunk_size": 1073741824
 }
 ```
 
