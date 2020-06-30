@@ -86,7 +86,7 @@ class S3RSync:
     digests_md5 = hashlib.md5(digests)
     return '"{}-{}"'.format(digests_md5.hexdigest(), len(md5_array))
 
-  def s3copys3(self, src_bucket, dest_bucket, key, size):
+  def s3copys3(self, src_bucket, dest_bucket, key, size, disable_multipart = False):
     ''' 
       S3 copy from source S3 object to destination s3 object ( renamed as src_bucket/original_object_name )
       
@@ -99,6 +99,7 @@ class S3RSync:
     dest_s3_uri = 's3://{}/{}/{}'.format(dest_bucket, src_bucket, key)
 
     multipart = size > self.chunk_size
+    if disable_multipart: multipart = False #Might have an original ETag, that wasn't multipart, but bigger than than the chunk_size.
 
     '''
     #Bug in S3 library corrupts read buffer when more than one s3 stream is open. 
@@ -183,12 +184,12 @@ class S3RSync:
           #Have the object, but the ETag differs, so we need to copy, then deleted the last version
           if self.debug >= 1: print('Mismatched: ', src_bucket, "/", r['Key'], ' ', r['ETag'], ' ', r['Size'], dest_keys[r['Key']])
           if self.update: 
-            self.s3copys3(src_bucket=src_bucket, dest_bucket=dest_bucket, key=r['Key'], size=r['Size'])
+            self.s3copys3(src_bucket=src_bucket, dest_bucket=dest_bucket, key=r['Key'], size=r['Size'], disable_multipart = ('-' not in r['ETag']) )
             #Delete previous object, if store has versioning on.
         dest_keys[r['Key']] = None  #So we know we have this one in the source.
       else:
         if self.debug >= 1: print('Copying: ', src_bucket, "/", r['Key'], ' ', r['ETag'], ' ', r['Size']) 
-        if self.update: self.s3copys3(src_bucket=src_bucket, dest_bucket=dest_bucket, key=r['Key'], size=r['Size'])
+        if self.update: self.s3copys3(src_bucket=src_bucket, dest_bucket=dest_bucket, key=r['Key'], size=r['Size'], disable_multipart = ('-' not in r['ETag']))
 
     for r in dest_keys:
       if dest_keys[r] is not None:
