@@ -192,7 +192,7 @@ class S3RSync:
 
     for r in dest_keys:
       if dest_keys[r] is not None:
-        if self.debug >= 4: print('DELETED: ', r)
+        if self.debug >= 2: print('DELETED: ', r)
         #Might want to age out the deleted ones.
 
 def parse_args():
@@ -222,6 +222,8 @@ args = parse_args()
 auth = json_load(args.auth_file)
 conf = json_load(args.conf_file)
 
-s3rsync = S3RSync(src_keys=auth['src_s3_keys'], src_endpoint=auth['src_endpoint'], dest_keys=auth['dest_s3_keys'], dest_endpoint=auth['dest_endpoint'], debug=args.debug_lvl, update=(not args.no_rsync))
+if 'chunk_size' not in conf or type(conf['chunk_size']): conf['chunk_size'] = 1073741824 #1G
+
+s3rsync = S3RSync(src_keys=auth['src_s3_keys'], src_endpoint=auth['src_endpoint'], dest_keys=auth['dest_s3_keys'], dest_endpoint=auth['dest_endpoint'], debug=args.debug_lvl, chunk_size = conf['chunk_size'], update=(not args.no_rsync))
 for bucket in conf['src_buckets']:
   s3rsync.rsync(src_bucket=bucket, dest_bucket=conf['dest_bucket'])
