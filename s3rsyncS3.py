@@ -160,6 +160,10 @@ class S3RSync:
           if key.endswith(suffix):
             yield obj
 
+  def s3destls(self, bucket, prefix ):
+    for r in self.bucket_ls(s3 = self.dest_connection, bucket = bucket, prefix = '{}/'.format(prefix)):
+      print(r['Key'], ' ', r['Size'], ' ', r['LastModified'], ' ', r['ETag'])
+
   def rsync(self, src_bucket, dest_bucket):
     '''
       Copy all objects in the source S3 bucket to the destination S3 bucket
@@ -203,6 +207,7 @@ def parse_args():
   parser.add_argument('-n', '--no_rsync', dest='no_rsync', action='store_true', help='Use with Debugging. Default is to perform s3 rsync')
   parser.add_argument('-c', '--conf', dest='conf_file', help='Specify JSON conf file for source and destination')
   parser.add_argument('-a', '--auth', dest='auth_file', help='Specify JSON auth file containing s3 keys')
+  parser.add_argument('--ls', dest='dest_ls', action='store_true', help='directory listing of S3 backup')
   args = parser.parse_args()
   
   if args.conf_file is None or args.auth_file is None:
@@ -217,14 +222,31 @@ def json_load(filename):
       return json.load(f)
   except Exception as e:
     print( "json_load({}): ".format(filename), e )
-    raise sys.exit(1)
+    sys.exit(1)
 
-args = parse_args()
-auth = json_load(args.auth_file)
-conf = json_load(args.conf_file)
+def main():
+  args = parse_args()
+  auth = json_load(args.auth_file)
+  conf = json_load(args.conf_file)
 
-if 'chunk_size' not in conf or type(conf['chunk_size']): conf['chunk_size'] = 1073741824 #1G
+  if 'src_s3_keys' not in auth: sys.exit("src_s3_keys not defined in auth file")
+  if 'src_endpoint' not in auth: sys.exit("src_endpoint not defined in auth file")
+  if 'dest_s3_keys' not in auth: sys.exit("dest_s3_keys not defined in auth file")
+  if 'dest_endpoint' not in auth: sys.exit("dest_endpoint not defined in auth file")
 
-s3rsync = S3RSync(src_keys=auth['src_s3_keys'], src_endpoint=auth['src_endpoint'], dest_keys=auth['dest_s3_keys'], dest_endpoint=auth['dest_endpoint'], debug=args.debug_lvl, chunk_size = conf['chunk_size'], update=(not args.no_rsync))
-for bucket in conf['src_buckets']:
-  s3rsync.rsync(src_bucket=bucket, dest_bucket=conf['dest_bucket'])
+  if 'src_buckets' not in conf: sys.exit("src_buckets not defined in conf file")
+  if 'dest_bucket' not in conf: sys.exit("dest_bucket not defined in conf file")
+
+  if 'chunk_size' not in conf or type(conf['chunk_size']): conf['chunk_size'] = S3RSync.CHUNK_SIZE 
+
+  s3rsync = S3RSync(src_keys=auth['src_s3_keys'], src_endpoint=auth['src_endpoint'], dest_keys=auth['dest_s3_keys'], dest_endpoint=auth['dest_endpoint'], debug=args.debug_lvl, chunk_size = conf['chunk_size'], update=(not args.no_rsync))
+
+  if args.dest_ls:
+    for bucket in conf['src_buckets']:
+      s3rsync.s3destls( bucket = conf['dest_bucket'], prefix = bucket )
+  else:
+    for bucket in conf['src_buckets']:
+      s3rsync.rsync(src_bucket=bucket, dest_bucket=conf['dest_bucket'])
+
+if __name__ == "__main__":
+  main()
